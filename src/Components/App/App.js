@@ -24,40 +24,52 @@ class App extends React.Component {
     const foundTrack = this.state.playlistTracks.find(
       (playlistTrack) => playlistTrack.id === track.id
     );
-    const newTrack = this.state.playlistTracks.concat(track);
-    foundTrack
-      ? console.log("Track already exits")
-      : this.setState({ playlistTracks: newTrack });
+    if (!foundTrack) {
+      this.setState((prevState) => ({
+        playlistTracks: [...prevState.playlistTracks, track],
+      }));
+    }
   }
 
   removeTrack(track) {
-    const isPresent = this.state.playlistTracks.filter(
+    const updatedPlaylist = this.state.playlistTracks.filter(
       (playlistTrack) => playlistTrack.id !== track.id
     );
-    this.setState({ playlistTracks: isPresent });
+    this.setState({ playlistTracks: updatedPlaylist });
   }
 
+  
   updatePlaylistName(name) {
     this.setState({ playlistName: name });
   }
-
   savePlaylist() {
+    this.setState({ loading: true }); // Set loading state to true while saving
     const trackURIs = this.state.playlistTracks.map((track) => track.uri);
     const name = this.state.playlistName;
     Spotify.savePlaylistName(name, trackURIs).then(() => {
       this.setState({
         playlistName: "New Playlist",
         playlistTracks: [],
+        loading: false, // Set loading state to false when saving is done
       });
     });
   }
 
+
   search(term) {
     Spotify.search(term).then((result) => {
-      this.setState({ searchResults: result });
-      // console.log(term);
+      // Filter out tracks that are already in the playlist
+      const newResults = result.filter(
+        (track) =>
+          !this.state.playlistTracks.some(
+            (playlistTrack) => playlistTrack.id === track.id
+          )
+      );
+      this.setState({ searchResults: newResults });
     });
   }
+
+
 
   render() {
     return (
@@ -85,6 +97,7 @@ class App extends React.Component {
               onSave={this.savePlaylist}
             />
           </div>
+          {this.state.loading && <p>Loading...</p>}
         </div>
       </div>
     );
